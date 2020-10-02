@@ -59,3 +59,17 @@ Additional settings in `.vscode/settings.json`
 
 - `editor.formatOnSave : true` to keep manual autoformatting to a minimum
 - `debug.javascript.usePreview : false` to address debugging issues from [microsoft/vscode#102834](https://github.com/microsoft/vscode/issues/102834). This should be removed eventually.
+
+## FAQ 
+
+### ESLint warnings
+
+The included eslint plugin for typescript has some very good defaults but they can be a little much for every project.
+
+To disable them, add the warning ID to a `"rules"` property in `etc/.eslintrc.json`. For example, the warning *`Unexpected any. Specify a different type.eslint@typescript-eslint/no-explicit-any`* can be disabled with the following rule:
+
+```
+"rules": {
+  "@typescript-eslint/no-explicit-any": 0
+},
+```
