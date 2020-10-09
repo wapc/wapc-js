@@ -60,6 +60,31 @@ Additional settings in `.vscode/settings.json`
 - `editor.formatOnSave : true` to keep manual autoformatting to a minimum
 - `debug.javascript.usePreview : false` to address debugging issues from [microsoft/vscode#102834](https://github.com/microsoft/vscode/issues/102834). This should be removed eventually.
 
+## Bash kickstart function
+
+```bash
+kickstart () {
+  # clone repo into directory passed as arg 1
+  git clone --depth 1 --branch master git@github.com:jsoverson/typescript-boilerplate.git $1
+  # cd into directory
+  cd $1
+  # change the "name" field in packcage.json to arg 1
+  jq --arg name "$1" '.name = $name' package.json > package.json.tmp
+  mv package.json.tmp package.json
+  # remove the origin of the original git repo
+  git remote remove origin
+  # install dependencies
+  npm install
+  # echo node and typescript version
+  echo "Node version: `node -v`"
+  echo "Typescript version: `npx tsc -v`"
+  # open VS Code
+  code .
+  # give yourself a pat on the back
+  echo "You're awesome 🤘"
+}
+```
+
 ## FAQ 
 
 ### ESLint warnings
