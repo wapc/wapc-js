@@ -1,8 +1,7 @@
 {
-  "name": "typescript-boilerplate",
-  "version": "1.0.0",
-  "description": "TODO",
-  "author": "TODO <todo@todo.com>",
+  "name": "",
+  "version": "0.0.0",
+  "description": "",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
@@ -24,8 +23,10 @@
     "extends": "./etc/.eslintrc.json"
   },
   "keywords": [],
+  "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@jsoverson/test-server": "^1.2.0",
     "@types/chai": "^4.2.12",
     "@types/find-root": "^1.1.2",
     "@types/mocha": "^8.0.3",
@@ -40,5 +41,7 @@
     "ts-node": "^9.0.0",
     "typescript": "^4.0.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "find-root": "^1.1.0"
+  }
 }
