@@ -2,7 +2,7 @@
 
 This is a boilerplate typescript project that incorporates fixes and best practices I come across as I build new projects.
 
-If you extend this via a fork or otherwise, please let me know so I can check out your changes!
+If you extend this via a fork or otherwise, please let me know so I can it to the list below.
 
 ## Who is this for?
 
@@ -13,11 +13,9 @@ Anyone who uses TypeScript with Visual Studio Code and writes tests with Mocha.
 - Build and watch with tolerable TS presets.
 - Testing with mocha & chai.
 - @types definitions for mocha, chai, node, and other dependencies included.
-- Local HTTP test server preconfigured in tests.
 - Visual Studio Code project settigns preconfigured for
   - Test Explorer UI recognizing Typescript tests
   - Debugging Typescript tests within the IDE
-- Adds `__projectroot` as an alternative to `__dirname` to avoid lookup problems from compiled files.
 - Configuration and rc files:
   - One configuration location for mocha, prettier, eslint & typescript so CLI programs and IDEs/extensions reuse configuration.
   - Config files whose path can be configured from a central location have been moved to `etc/`
@@ -62,6 +60,10 @@ Additional settings in `.vscode/settings.json`
 
 ## Bash kickstart function
 
+Add this function to your .bash_profile to make initializing new projects as easy as running `kickstart my-project`
+
+This function requires [jq](https://stedolan.github.io/jq/) but that dependency is easily removable if you really don't want to install jq.
+
 ```bash
 kickstart () {
   # clone repo into directory passed as arg 1
@@ -85,16 +87,20 @@ kickstart () {
 }
 ```
 
-## FAQ 
+## FAQ
 
 ### ESLint warnings
 
 The included eslint plugin for typescript has some very good defaults but they can be a little much for every project.
 
-To disable them, add the warning ID to a `"rules"` property in `etc/.eslintrc.json`. For example, the warning *`Unexpected any. Specify a different type.eslint@typescript-eslint/no-explicit-any`* can be disabled with the following rule:
+To disable them, add the warning ID to a `"rules"` property in `etc/.eslintrc.json`. For example, the warning _`Unexpected any. Specify a different type.eslint@typescript-eslint/no-explicit-any`_ can be disabled with the following rule:
 
 ```
 "rules": {
   "@typescript-eslint/no-explicit-any": 0
 },
 ```
+
+## Forks
+
+- [typescript-boilerplate-local-server](https://github.com/jsoverson/typescript-boilerplate-local-server) - adds a local HTTP server for testing libraries that rely on HTTP transactions.

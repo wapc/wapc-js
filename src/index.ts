@@ -1,3 +1,4 @@
-export function main(): string {
-  return 'TODO remove stub implementation';
+
+export default function (): string {
+  throw new Error('needs implementation')
 }

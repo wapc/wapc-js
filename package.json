@@ -1,7 +1,8 @@
 {
   "name": "",
-  "version": "0.0.0",
   "description": "",
+  "author": "",
+  "version": "0.0.0",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
@@ -18,21 +19,19 @@
   "mocha": {
     "extends": "etc/.mocharc.json"
   },
-  "prettier": "./etc/.prettierrc.js",
+  "prettier": "./etc/.prettierrc.json",
   "eslintConfig": {
     "extends": "./etc/.eslintrc.json"
   },
   "keywords": [],
-  "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@jsoverson/test-server": "^1.2.0",
     "@types/chai": "^4.2.12",
     "@types/find-root": "^1.1.2",
     "@types/mocha": "^8.0.3",
     "@types/node": "^14.6.2",
-    "@typescript-eslint/eslint-plugin": "^3.10.1",
-    "@typescript-eslint/parser": "^3.10.1",
+    "@typescript-eslint/eslint-plugin": "^4.4.1",
+    "@typescript-eslint/parser": "^4.4.1",
     "chai": "^4.2.0",
     "eslint": "^7.7.0",
     "mocha": "^8.1.3",
@@ -41,7 +40,5 @@
     "ts-node": "^9.0.0",
     "typescript": "^4.0.2"
   },
-  "dependencies": {
-    "find-root": "^1.1.0"
-  }
+  "dependencies": {}
 }
