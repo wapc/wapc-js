@@ -13,13 +13,11 @@ Anyone who uses TypeScript with Visual Studio Code and writes tests with Mocha.
 - Build and watch with tolerable TS presets.
 - Testing with mocha & chai.
 - @types definitions for mocha, chai, node, and other dependencies included.
-- Local HTTP test server preconfigured in tests.
 - Visual Studio Code project settigns preconfigured for
   - Test Explorer UI recognizing Typescript tests
   - Debugging Typescript tests within the IDE
-- Adds `__projectroot` as an alternative to `__dirname` to avoid lookup problems from compiled files.
 - Configuration and rc files:
-  - One configuration location for mocha, prettier, eslint & typescript so CLI programs and IDEs/extensions reuse configuration.
+  - Reusable configuration for mocha, prettier, eslint & typescript so CLI programs and IDEs/extensions reuse configuration.
   - Config files whose path can be configured from a central location have been moved to `etc/`
   - Minimal .gitignore
 

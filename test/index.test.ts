@@ -1,31 +1,24 @@
 import { expect } from 'chai';
 import { describe } from 'mocha';
-import { start, TestServer } from '@jsoverson/test-server';
 
-import * as index from '../src';
+import { main } from '../src';
+
+import pkg from '../package.json';
 
 describe('main', function () {
-  // Setup and teardown for a local HTTP server.
-  // Remove this section if you don't need to make HTTP requests.
-  // More info: https://github.com/jsoverson/test-server
-
-  /******************************
-   *   HTTP test server setup   *
-   ******************************/
-  let server: TestServer;
-
-  before(async () => {
-    server = await start(__dirname, 'server_root');
+  it('should have been changed', () => {
+    expect(main()).to.not.match(/todo/i);
   });
 
-  after(async () => {
-    await server.stop();
-  });
-  /******************************
-   * End HTTP test server setup *
-   ******************************/
-
-  it('TODO REMOVE ME', () => {
-    expect(index.main()).to.not.equal('TODO remove stub implementation');
+  describe('package.json', function () {
+    it('name should not be typescript-boilerplate', () => {
+      expect(pkg.name).to.not.equal('typescript-boilerplate');
+    });
+    it('description should be filled out', () => {
+      expect(pkg.description).to.not.match(/todo/i);
+    });
+    it('author should be filled out', () => {
+      expect(pkg.author).to.not.match(/todo/i);
+    });
   });
 });
