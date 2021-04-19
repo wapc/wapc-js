@@ -1,4 +1,3 @@
+export { instantiate, instantiateStreaming, WapcHost } from './wapc-host';
+export * as errors from './errors';
 
-export default function (): string {
-  throw new Error('needs implementation')
-}

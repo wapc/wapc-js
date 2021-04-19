@@ -1,0 +1,43 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mocha Tests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+
+    <script src="https://unpkg.com/chai/chai.js"></script>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script class="mocha-init">
+      mocha.setup('bdd');
+    </script>
+    <script>
+      window.failures = [];
+      window.successes = [];
+
+      afterEach(function () {
+        const state = this.currentTest.state;
+        const path = this.currentTest.titlePath().join('.');
+        if (state === 'passed') {
+          successes.push(`${path}`);
+        } else if (state === 'failed') {
+          const err = this.currentTest.err;
+          failures.push(`${path}: ${err.message}`);
+        }
+      });
+      after(function () {
+        const div = document.createElement('div');
+        div.id = 'done';
+        document.body.appendChild(div);
+      });
+    </script>
+    <script src="/dist/index.bundle.js"></script>
+    <script src="/dist/test.bundle.js"></script>
+    <script class="mocha-exec">
+      mocha.run();
+    </script>
+  </body>
+</html>
+<!DOCTYPE html>
