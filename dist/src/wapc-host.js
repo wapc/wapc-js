@@ -9,51 +9,70 @@ const _1 = require(".");
 const callbacks_1 = require("./callbacks");
 const errors_1 = require("./errors");
 const debug = debug_1.default('wapc-node');
+const START = '_start'; // Linux/TinyGo initialization
 const WAPC_INIT = 'wapc_init';
 const GUEST_CALL = '__guest_call';
 class ModuleState {
-    constructor(hostCall) {
+    constructor(hostCall, writer) {
         this.hostCallback =
             hostCall ||
                 ((binding, namespace, operation) => {
                     throw new errors_1.HostCallNotImplementedError(binding, namespace, operation);
                 });
+        this.writer = writer || (() => undefined);
     }
 }
-const ENCODER = new TextEncoder();
 class WapcHost {
-    constructor(hostCall) {
-        this.state = new ModuleState(hostCall);
+    constructor(hostCall, writer) {
+        this.state = new ModuleState(hostCall, writer);
+        this.textEncoder = new TextEncoder();
+        this.textDecoder = new TextDecoder('utf-8');
+        this.guestCall = () => undefined;
     }
     async instantiate(source) {
-        const imports = {
-            wapc: callbacks_1.generate_wapc_imports(this),
-        };
+        const imports = this.getImports();
         const result = await WebAssembly.instantiate(source, imports).catch(e => {
             throw new _1.errors.InvalidWasm(e);
         });
-        this.instance = result.instance;
-        const init = this.instance.exports[WAPC_INIT];
-        init([]);
+        this.initialize(result.instance);
         return this;
     }
     async instantiateStreaming(source) {
-        const imports = {
-            wapc: callbacks_1.generate_wapc_imports(this),
-        };
+        const imports = this.getImports();
         const result = await WebAssembly.instantiateStreaming(source, imports).catch(e => {
             throw new _1.errors.StreamingFailure(e);
         });
-        this.instance = result.instance;
-        const init = this.instance.exports[WAPC_INIT];
-        init([]);
+        this.initialize(result.instance);
         return this;
+    }
+    getImports() {
+        const wasiImports = callbacks_1.generateWASIImports(this);
+        return {
+            wapc: callbacks_1.generateWapcImports(this),
+            wasi: wasiImports,
+            wasi_unstable: wasiImports,
+        };
+    }
+    initialize(instance) {
+        this.instance = instance;
+        const start = this.instance.exports[START];
+        if (start != null) {
+            start([]);
+        }
+        const init = this.instance.exports[WAPC_INIT];
+        if (init != null) {
+            init([]);
+        }
+        this.guestCall = this.instance.exports[GUEST_CALL];
+        if (this.guestCall == null) {
+            throw new Error('WebAssembly module does not export __guest_call');
+        }
     }
     async invoke(operation, payload) {
         debug(`invoke(%o, [%o bytes]`, operation, payload.length);
-        this.state.guestRequest = { operation, msg: payload };
-        const guestCall = this.instance.exports[GUEST_CALL];
-        const result = guestCall(ENCODER.encode(operation).length, payload.length);
+        const operationEncoded = this.textEncoder.encode(operation);
+        this.state.guestRequest = { operation, operationEncoded, msg: payload };
+        const result = this.guestCall(operationEncoded.length, payload.length);
         if (result === 0) {
             throw new Error(this.state.guestError);
         }
@@ -67,18 +86,17 @@ class WapcHost {
         }
     }
     getCallerMemory() {
-        const mem = this.instance.exports.memory;
-        return mem;
+        return this.instance.exports.memory;
     }
 }
 exports.WapcHost = WapcHost;
-async function instantiate(source, hostCall) {
-    const host = new WapcHost(hostCall);
+async function instantiate(source, hostCall, writer) {
+    const host = new WapcHost(hostCall, writer);
     return host.instantiate(source);
 }
 exports.instantiate = instantiate;
-async function instantiateStreaming(source, hostCall) {
-    const host = new WapcHost(hostCall);
+async function instantiateStreaming(source, hostCall, writer) {
+    const host = new WapcHost(hostCall, writer);
     return host.instantiateStreaming(await source);
 }
 exports.instantiateStreaming = instantiateStreaming;

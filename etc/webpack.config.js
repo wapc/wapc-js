@@ -20,6 +20,6 @@ module.exports = {
   output: {
     filename: 'index.bundle.js',
     path: path.resolve(__dirname, '..', 'dist'),
-    library: 'WapcJS',
+    library: 'waPC',
   },
 };

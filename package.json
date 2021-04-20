@@ -1,6 +1,6 @@
 {
-  "name": "wapc-node",
-  "description": "WaPC host for node.js",
+  "name": "@wapc/host",
+  "description": "waPC host for node.js and the browser",
   "author": "jsoverson",
   "version": "0.0.1",
   "main": "dist/src/index.js",

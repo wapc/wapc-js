@@ -1,17 +1,20 @@
 import DEBUG from 'debug';
 import { errors } from '.';
-import { generate_wapc_imports as generateWapcImports } from './callbacks';
+import { generateWapcImports, generateWASIImports } from './callbacks';
 import { HostCallNotImplementedError } from './errors';
 
 const debug = DEBUG('wapc-node');
 
 type HostCall = (binding: string, namespace: string, operation: string, payload: Uint8Array) => Uint8Array;
+type Writer = (message: string) => void;
 
 interface Invocation {
   operation: string;
+  operationEncoded: Uint8Array;
   msg: Uint8Array;
 }
 
+const START = '_start'; // Linux/TinyGo initialization
 const WAPC_INIT = 'wapc_init';
 const GUEST_CALL = '__guest_call';
 
@@ -22,53 +25,84 @@ class ModuleState {
   guestError?: string;
   hostError?: string;
   hostCallback: HostCall;
-  constructor(hostCall?: HostCall) {
+  writer: Writer;
+
+  constructor(hostCall?: HostCall, writer?: Writer) {
     this.hostCallback =
       hostCall ||
       ((binding, namespace, operation) => {
         throw new HostCallNotImplementedError(binding, namespace, operation);
       });
+    this.writer = writer || (() => undefined);
   }
 }
-
-const ENCODER = new TextEncoder();
 
 export class WapcHost {
   buffer!: Uint8Array;
   instance!: WebAssembly.Instance;
   state: ModuleState;
-  constructor(hostCall?: HostCall) {
-    this.state = new ModuleState(hostCall);
+  guestCall: CallableFunction;
+  textEncoder: TextEncoder;
+  textDecoder: TextDecoder;
+
+  constructor(hostCall?: HostCall, writer?: Writer) {
+    this.state = new ModuleState(hostCall, writer);
+    this.textEncoder = new TextEncoder();
+    this.textDecoder = new TextDecoder('utf-8');
+    this.guestCall = () => undefined;
   }
+
   async instantiate(source: Uint8Array): Promise<WapcHost> {
-    const imports = {
-      wapc: generateWapcImports(this),
-    };
+    const imports = this.getImports();
     const result = await WebAssembly.instantiate(source, imports).catch(e => {
       throw new errors.InvalidWasm(e);
     });
-    this.instance = result.instance;
-    const init = this.instance.exports[WAPC_INIT] as CallableFunction;
-    init([]);
+    this.initialize(result.instance);
+
     return this;
   }
+
   async instantiateStreaming(source: Response): Promise<WapcHost> {
-    const imports = {
-      wapc: generateWapcImports(this),
-    };
+    const imports = this.getImports();
     const result = await WebAssembly.instantiateStreaming(source, imports).catch(e => {
       throw new errors.StreamingFailure(e);
     });
-    this.instance = result.instance;
-    const init = this.instance.exports[WAPC_INIT] as CallableFunction;
-    init([]);
+    this.initialize(result.instance);
+
     return this;
   }
+
+  getImports(): WebAssembly.Imports {
+    const wasiImports = generateWASIImports(this);
+    return {
+      wapc: generateWapcImports(this),
+      wasi: wasiImports,
+      wasi_unstable: wasiImports,
+    };
+  }
+
+  initialize(instance: WebAssembly.Instance): void {
+    this.instance = instance;
+    const start = this.instance.exports[START] as CallableFunction;
+    if (start != null) {
+      start([]);
+    }
+    const init = this.instance.exports[WAPC_INIT] as CallableFunction;
+    if (init != null) {
+      init([]);
+    }
+    this.guestCall = this.instance.exports[GUEST_CALL] as CallableFunction;
+    if (this.guestCall == null) {
+      throw new Error('WebAssembly module does not export __guest_call');
+    }
+  }
+
   async invoke(operation: string, payload: Uint8Array): Promise<Uint8Array> {
     debug(`invoke(%o, [%o bytes]`, operation, payload.length);
-    this.state.guestRequest = { operation, msg: payload };
-    const guestCall = this.instance.exports[GUEST_CALL] as CallableFunction;
-    const result = guestCall(ENCODER.encode(operation).length, payload.length);
+    const operationEncoded = this.textEncoder.encode(operation);
+    this.state.guestRequest = { operation, operationEncoded, msg: payload };
+    const result = this.guestCall(operationEncoded.length, payload.length);
+
     if (result === 0) {
       throw new Error(this.state.guestError);
     } else {
@@ -79,21 +113,22 @@ export class WapcHost {
       }
     }
   }
+
   getCallerMemory(): WebAssembly.Memory {
-    const mem = this.instance.exports.memory as WebAssembly.Memory;
-    return mem;
+    return this.instance.exports.memory as WebAssembly.Memory;
   }
 }
 
-export async function instantiate(source: Uint8Array, hostCall?: HostCall): Promise<WapcHost> {
-  const host = new WapcHost(hostCall);
+export async function instantiate(source: Uint8Array, hostCall?: HostCall, writer?: Writer): Promise<WapcHost> {
+  const host = new WapcHost(hostCall, writer);
   return host.instantiate(source);
 }
 
 export async function instantiateStreaming(
   source: Response | Promise<Response>,
   hostCall?: HostCall,
+  writer?: Writer,
 ): Promise<WapcHost> {
-  const host = new WapcHost(hostCall);
+  const host = new WapcHost(hostCall, writer);
   return host.instantiateStreaming(await source);
 }

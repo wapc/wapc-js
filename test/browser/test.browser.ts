@@ -9,7 +9,7 @@ const expect = chai.expect;
 // start
 import * as WapcNodeAPI from '../../src';
 const win = window as any;
-const WapcNode = win.WapcJS as typeof WapcNodeAPI;
+const WapcNode = win.waPC as typeof WapcNodeAPI;
 const { instantiate, WapcHost, instantiateStreaming, errors } = WapcNode;
 // end
 

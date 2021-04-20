@@ -4,16 +4,15 @@ import { WapcHost } from './wapc-host';
 
 const debug = DEBUG('wapc-node');
 
-const ENCODER = new TextEncoder();
-const DECODER = new TextDecoder('utf-8');
-
-export function generate_wapc_imports(instance: WapcHost): WapcProtocol & WebAssembly.ModuleImports {
+export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssembly.ModuleImports {
   return {
     __console_log(ptr: number, len: number) {
       debug('__console_log %o bytes @ %o', len, ptr);
-      const str_bytes = getVecFromMemory(instance.getCallerMemory(), ptr, len);
-      console.log(DECODER.decode(str_bytes));
+      const buffer = new Uint8Array(instance.getCallerMemory().buffer);
+      const bytes = buffer.slice(ptr, ptr + len);
+      console.log(instance.textDecoder.decode(bytes));
     },
+
     __host_call(
       bd_ptr: number,
       bd_len: number,
@@ -26,10 +25,11 @@ export function generate_wapc_imports(instance: WapcHost): WapcProtocol & WebAss
     ): number {
       debug('__host_call');
       const mem = instance.getCallerMemory();
-      const binding = getStringFromMemory(mem, bd_ptr, bd_len);
-      const namespace = getStringFromMemory(mem, ns_ptr, ns_len);
-      const operation = getStringFromMemory(mem, op_ptr, op_len);
-      const bytes = getVecFromMemory(mem, ptr, len);
+      const buffer = new Uint8Array(mem.buffer);
+      const binding = instance.textDecoder.decode(buffer.slice(bd_ptr, bd_ptr + bd_len));
+      const namespace = instance.textDecoder.decode(buffer.slice(ns_ptr, ns_ptr + ns_len));
+      const operation = instance.textDecoder.decode(buffer.slice(op_ptr, op_ptr + op_len));
+      const bytes = buffer.slice(ptr, ptr + len);
       debug('host_call(%o,%o,%o,[%o bytes])', binding, namespace, operation, bytes.length);
       instance.state.hostError = undefined;
       instance.state.hostResponse = undefined;
@@ -42,46 +42,61 @@ export function generate_wapc_imports(instance: WapcHost): WapcProtocol & WebAss
         return 0;
       }
     },
+
     __host_response(ptr: number) {
       debug('__host_response ptr: %o', ptr);
       if (instance.state.hostResponse) {
-        writeBytesToMemory(instance.getCallerMemory(), ptr, instance.state.hostResponse);
+        const buffer = new Uint8Array(instance.getCallerMemory().buffer);
+        buffer.set(instance.state.hostResponse, ptr);
       }
     },
+
     __host_response_len(): number {
       const len = instance.state.hostResponse?.length || 0;
       debug('__host_response_len %o', len);
       return len;
     },
+
     __host_error_len(): number {
       const len = instance.state.hostError?.length || 0;
       debug('__host_error_len ptr: %o', len);
       return len;
     },
+
     __host_error(ptr: number) {
       debug('__host_error %o', ptr);
       if (instance.state.hostError) {
         debug('__host_error writing to mem: %o', instance.state.hostError);
-        writeBytesToMemory(instance.getCallerMemory(), ptr, ENCODER.encode(instance.state.hostError));
+        const buffer = new Uint8Array(instance.getCallerMemory().buffer);
+        buffer.set(instance.textEncoder.encode(instance.state.hostError), ptr);
       }
     },
+
     __guest_response(ptr: number, len: number) {
       debug('__guest_response %o bytes @ %o', len, ptr);
-      const bytes = getVecFromMemory(instance.getCallerMemory(), ptr, len);
+      instance.state.guestError = undefined;
+      const buffer = new Uint8Array(instance.getCallerMemory().buffer);
+      const bytes = buffer.slice(ptr, ptr + len);
       instance.state.guestResponse = bytes;
     },
+
     __guest_error(ptr: number, len: number) {
       debug('__guest_error %o bytes @ %o', len, ptr);
-      instance.state.guestError = getStringFromMemory(instance.getCallerMemory(), ptr, len);
+      const buffer = new Uint8Array(instance.getCallerMemory().buffer);
+      const bytes = buffer.slice(ptr, ptr + len);
+      const message = instance.textDecoder.decode(bytes);
+      instance.state.guestError = message;
     },
+
     __guest_request(op_ptr: number, ptr: number) {
       debug('__guest_request op: %o, ptr: %o', op_ptr, ptr);
       const invocation = instance.state.guestRequest;
       if (invocation) {
         const memory = instance.getCallerMemory();
         debug('writing invocation (%o,[%o bytes])', invocation.operation, invocation.msg.length);
-        writeBytesToMemory(memory, ptr, invocation.msg);
-        writeBytesToMemory(memory, op_ptr, ENCODER.encode(invocation.operation));
+        const buffer = new Uint8Array(memory.buffer);
+        buffer.set(invocation.operationEncoded, op_ptr);
+        buffer.set(invocation.msg, ptr);
       } else {
         throw new Error(
           '__guest_request called without an invocation present. This is probably a bug in the implementing library.',
@@ -91,18 +106,33 @@ export function generate_wapc_imports(instance: WapcHost): WapcProtocol & WebAss
   };
 }
 
-function getStringFromMemory(memory: WebAssembly.Memory, ptr: number, len: number): string {
-  const str_bytes = getVecFromMemory(memory, ptr, len);
-  return DECODER.decode(str_bytes);
-}
+export function generateWASIImports(instance: WapcHost): WebAssembly.ModuleImports {
+  return {
+    __fd_write(fileDescriptor: number, iovsPtr: number, iovsLen: number, writtenPtr: number) {
+      // Only writing to standard out (1) is supported
+      if (fileDescriptor != 1) {
+        return 0;
+      }
 
-function getVecFromMemory(memory: WebAssembly.Memory, ptr: number, len: number): Uint8Array {
-  const buffer = new Uint8Array(memory.buffer);
-  return buffer.slice(ptr, ptr + len);
-}
+      const memory = instance.getCallerMemory();
+      const dv = new DataView(memory.buffer);
+      const heap = new Uint8Array(memory.buffer);
+      let bytesWritten = 0;
 
-function writeBytesToMemory(memory: WebAssembly.Memory, ptr: number, slice: Uint8Array): void {
-  debug(`writing to mem [%o bytes] @ %o`, slice.length, ptr);
-  const buffer = new Uint8Array(memory.buffer);
-  buffer.set(slice, ptr);
+      while (iovsLen > 0) {
+        iovsLen--;
+        const base = dv.getUint32(iovsPtr, true);
+        iovsPtr += 4;
+        const length = dv.getUint32(iovsPtr, true);
+        iovsPtr += 4;
+        const stringBytes = heap.slice(base, base + length);
+        instance.state.writer(instance.textDecoder.decode(stringBytes));
+        bytesWritten += length;
+      }
+
+      dv.setUint32(writtenPtr, bytesWritten, true);
+
+      return bytesWritten;
+    },
+  };
 }

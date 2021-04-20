@@ -9,7 +9,7 @@ const msgpack_1 = require("@msgpack/msgpack");
 chai_1.default.use(chai_as_promised_1.default);
 const expect = chai_1.default.expect;
 const win = window;
-const WapcNode = win.WapcJS;
+const WapcNode = win.waPC;
 const { instantiate, WapcHost, instantiateStreaming, errors } = WapcNode;
 // end
 async function fetchBytes(url) {
