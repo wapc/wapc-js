@@ -105,7 +105,7 @@ export class WapcHost {
       throw new Error(this.state.guestError);
     } else {
       if (!this.state.guestResponse) {
-        throw new Error('Guest call succeeded, but guest response not set. This is a bug in wapc-node');
+        throw new Error('Guest call succeeded, but guest response not set. This is a bug in @wapc/host');
       } else {
         return this.state.guestResponse;
       }
