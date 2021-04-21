@@ -1,9 +1,7 @@
-import DEBUG from 'debug';
+import { debug } from './debug';
 import { errors } from '.';
 import { generateWapcImports, generateWASIImports } from './callbacks';
 import { HostCallNotImplementedError } from './errors';
-
-const debug = DEBUG('wapc-node');
 
 type HostCall = (binding: string, namespace: string, operation: string, payload: Uint8Array) => Uint8Array;
 type Writer = (message: string) => void;
@@ -98,7 +96,7 @@ export class WapcHost {
   }
 
   async invoke(operation: string, payload: Uint8Array): Promise<Uint8Array> {
-    debug(`invoke(%o, [%o bytes]`, operation, payload.length);
+    debug(() => [`invoke(%o, [%o bytes]`, operation, payload.length]);
     const operationEncoded = this.textEncoder.encode(operation);
     this.state.guestRequest = { operation, operationEncoded, msg: payload };
     const result = this.guestCall(operationEncoded.length, payload.length);

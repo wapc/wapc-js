@@ -1,13 +1,11 @@
-import DEBUG from 'debug';
+import { debug } from './debug';
 import { WapcProtocol } from './protocol';
 import { WapcHost } from './wapc-host';
-
-const debug = DEBUG('wapc-node');
 
 export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssembly.ModuleImports {
   return {
     __console_log(ptr: number, len: number) {
-      debug('__console_log %o bytes @ %o', len, ptr);
+      debug(() => ['__console_log %o bytes @ %o', len, ptr]);
       const buffer = new Uint8Array(instance.getCallerMemory().buffer);
       const bytes = buffer.slice(ptr, ptr + len);
       console.log(instance.textDecoder.decode(bytes));
@@ -23,14 +21,14 @@ export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssem
       ptr: number,
       len: number,
     ): number {
-      debug('__host_call');
+      debug(() => ['__host_call']);
       const mem = instance.getCallerMemory();
       const buffer = new Uint8Array(mem.buffer);
       const binding = instance.textDecoder.decode(buffer.slice(bd_ptr, bd_ptr + bd_len));
       const namespace = instance.textDecoder.decode(buffer.slice(ns_ptr, ns_ptr + ns_len));
       const operation = instance.textDecoder.decode(buffer.slice(op_ptr, op_ptr + op_len));
       const bytes = buffer.slice(ptr, ptr + len);
-      debug('host_call(%o,%o,%o,[%o bytes])', binding, namespace, operation, bytes.length);
+      debug(() => ['host_call(%o,%o,%o,[%o bytes])', binding, namespace, operation, bytes.length]);
       instance.state.hostError = undefined;
       instance.state.hostResponse = undefined;
       try {
@@ -44,7 +42,7 @@ export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssem
     },
 
     __host_response(ptr: number) {
-      debug('__host_response ptr: %o', ptr);
+      debug(() => ['__host_response ptr: %o', ptr]);
       if (instance.state.hostResponse) {
         const buffer = new Uint8Array(instance.getCallerMemory().buffer);
         buffer.set(instance.state.hostResponse, ptr);
@@ -53,27 +51,27 @@ export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssem
 
     __host_response_len(): number {
       const len = instance.state.hostResponse?.length || 0;
-      debug('__host_response_len %o', len);
+      debug(() => ['__host_response_len %o', len]);
       return len;
     },
 
     __host_error_len(): number {
       const len = instance.state.hostError?.length || 0;
-      debug('__host_error_len ptr: %o', len);
+      debug(() => ['__host_error_len ptr: %o', len]);
       return len;
     },
 
     __host_error(ptr: number) {
-      debug('__host_error %o', ptr);
+      debug(() => ['__host_error %o', ptr]);
       if (instance.state.hostError) {
-        debug('__host_error writing to mem: %o', instance.state.hostError);
+        debug(() => ['__host_error writing to mem: %o', instance.state.hostError]);
         const buffer = new Uint8Array(instance.getCallerMemory().buffer);
         buffer.set(instance.textEncoder.encode(instance.state.hostError), ptr);
       }
     },
 
     __guest_response(ptr: number, len: number) {
-      debug('__guest_response %o bytes @ %o', len, ptr);
+      debug(() => ['__guest_response %o bytes @ %o', len, ptr]);
       instance.state.guestError = undefined;
       const buffer = new Uint8Array(instance.getCallerMemory().buffer);
       const bytes = buffer.slice(ptr, ptr + len);
@@ -81,7 +79,7 @@ export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssem
     },
 
     __guest_error(ptr: number, len: number) {
-      debug('__guest_error %o bytes @ %o', len, ptr);
+      debug(() => ['__guest_error %o bytes @ %o', len, ptr]);
       const buffer = new Uint8Array(instance.getCallerMemory().buffer);
       const bytes = buffer.slice(ptr, ptr + len);
       const message = instance.textDecoder.decode(bytes);
@@ -89,17 +87,17 @@ export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssem
     },
 
     __guest_request(op_ptr: number, ptr: number) {
-      debug('__guest_request op: %o, ptr: %o', op_ptr, ptr);
+      debug(() => ['__guest_request op: %o, ptr: %o', op_ptr, ptr]);
       const invocation = instance.state.guestRequest;
       if (invocation) {
         const memory = instance.getCallerMemory();
-        debug('writing invocation (%o,[%o bytes])', invocation.operation, invocation.msg.length);
+        debug(() => ['writing invocation (%o,[%o bytes])', invocation.operation, invocation.msg.length]);
         const buffer = new Uint8Array(memory.buffer);
         buffer.set(invocation.operationEncoded, op_ptr);
         buffer.set(invocation.msg, ptr);
       } else {
         throw new Error(
-          '__guest_request called without an invocation present. This is probably a bug in the implementing library.',
+          '__guest_request called without an invocation present. This is probably a bug in the library using @wapc/host.',
         );
       }
     },

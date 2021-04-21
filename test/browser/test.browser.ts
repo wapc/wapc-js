@@ -1,21 +1,15 @@
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { encode, decode } from '@msgpack/msgpack';
+import * as WapcJsApi from '../../src';
 
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
-// Do not reference local source, reference global variable from within the browser
-// start
-import * as WapcNodeAPI from '../../src';
-const win = window as any;
-const WapcNode = win.waPC as typeof WapcNodeAPI;
-const { instantiate, WapcHost, instantiateStreaming, errors } = WapcNode;
-// end
-
 async function fetchBytes(url: string): Promise<Uint8Array> {
   return new Uint8Array(await (await (await fetch(url)).blob()).arrayBuffer());
 }
+const { instantiate, WapcHost, instantiateStreaming, errors } = getApiFromWindow();
 
 describe('WapcHost', function () {
   let buffer: Uint8Array;
@@ -93,3 +87,14 @@ describe('WapcHost', function () {
     expect(decoded).to.equal('hello world');
   });
 });
+
+/**
+ * This function is to satisfy typescript. These tests run in a browser
+ * and take the Wapc API from the global namespace so we have to hand wave
+ * away the window object.
+ * */
+function getApiFromWindow(): typeof WapcJsApi {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const win = window as any;
+  return win.waPC as typeof WapcJsApi;
+}
