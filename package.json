@@ -5,6 +5,12 @@
   "version": "0.0.1",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "test",
+    "src"
+  ],
   "scripts": {
     "build": "npm run build:cjs && npm run build:browser",
     "build:cjs": "tsc --declaration",

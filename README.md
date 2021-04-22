@@ -13,7 +13,7 @@ While waPC does not prescribe a serialization/deserialization format, MessagePac
 ## Installation
 
 ```sh
-$ npm install [tbd]
+$ npm install @wapc/host
 ```
 
 ## Usage
