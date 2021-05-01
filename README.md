@@ -21,28 +21,37 @@ $ npm install @wapc/host
 **Node**
 
 ```js
-import { instantiate } from '@wapc/host';
-import { encode, decode } from '@msgpack/msgpack';
+const { instantiate } = require('@wapc/host');
+const { encode, decode } = require('@msgpack/msgpack');
+const { promises: fs } = require('fs');
+const path = require('path');
 
-// Read wasm off the local disk as Uint8Array
-buffer = fs.readFileSync(path.join(__dirname, 'fixtures', 'rust_echo_string.wasm'));
+async function main() {
+  // Read wasm off the local disk as Uint8Array
+  buffer = await fs.readFile(path.join(__dirname, 'fixtures', 'rust_echo_string.wasm'));
 
-// Instantiate a WapcHost with the Uint8Array
-const host = await instantiate(buffer);
+  // Instantiate a WapcHost with the bytes read off disk
+  const host = await instantiate(buffer);
 
-// Encode the arguments to send to the wasm function (Example using msgpack)
-const payload = encode({ msg: 'hello world' });
+  // Encode the payload with MessagePack
+  const payload = encode({ msg: 'hello world' });
 
-// Invoke the "echo" function in the wasm guest
-const result = await host.invoke('echo', payload);
+  // Invoke the operation in the wasm guest
+  const result = await host.invoke('echo', payload);
 
-// Decode the results (using msgpack in this example)
-const decoded = decode(result);
+  // Decode the results using MessagePack
+  const decoded = decode(result);
+
+  // log to the console
+  console.log(`Result: ${decoded}`);
+}
+
+main().catch(err => console.error(err));
 ```
 
 **Browser**
 
-Browser environments can instantiate from a FetchResponse with `waPC.instantiateStreaming()`.
+Browser environments can instantiate from a FetchResponse with `waPC.instantiateStreaming()`. If the browser does not support streaming wasm then waPC gracefully degrades and waits for the response to complete before instantiating.
 
 ```html
 <script src="https://unpkg.com/@msgpack/msgpack@2.5.1/dist.es5+umd/msgpack.min.js"></script>
