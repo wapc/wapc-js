@@ -62,12 +62,19 @@ export class WapcHost {
 
   async instantiateStreaming(source: Response): Promise<WapcHost> {
     const imports = this.getImports();
-    const result = await WebAssembly.instantiateStreaming(source, imports).catch(e => {
-      throw new errors.StreamingFailure(e);
-    });
-    this.initialize(result.instance);
-
-    return this;
+    if (!WebAssembly.instantiateStreaming) {
+      debug(() => [
+        'WebAssembly.instantiateStreaming is not supported on this browser, wasm execution will be impacted.',
+      ]);
+      const bytes = new Uint8Array(await (await source).arrayBuffer());
+      return this.instantiate(bytes);
+    } else {
+      const result = await WebAssembly.instantiateStreaming(source, imports).catch(e => {
+        throw new errors.StreamingFailure(e);
+      });
+      this.initialize(result.instance);
+      return this;
+    }
   }
 
   getImports(): WebAssembly.Imports {
