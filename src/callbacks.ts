@@ -36,7 +36,7 @@ export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssem
         instance.state.hostResponse = result;
         return 1;
       } catch (e) {
-        instance.state.hostError = e.toString();
+        instance.state.hostError = '' + e;
         return 0;
       }
     },
