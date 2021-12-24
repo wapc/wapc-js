@@ -106,7 +106,7 @@ export function generateWapcImports(instance: WapcHost): WapcProtocol & WebAssem
 
 export function generateWASIImports(instance: WapcHost): WebAssembly.ModuleImports {
   return {
-    __fd_write(fileDescriptor: number, iovsPtr: number, iovsLen: number, writtenPtr: number) {
+    fd_write(fileDescriptor: number, iovsPtr: number, iovsLen: number, writtenPtr: number): number {
       // Only writing to standard out (1) is supported
       if (fileDescriptor != 1) {
         return 0;
@@ -131,6 +131,21 @@ export function generateWASIImports(instance: WapcHost): WebAssembly.ModuleImpor
       dv.setUint32(writtenPtr, bytesWritten, true);
 
       return bytesWritten;
+    },
+
+    args_sizes_get(argc: number, argvBufSize: number): number {
+      const memory = instance.getCallerMemory();
+      const dv = new DataView(memory.buffer);
+
+      dv.setUint32(argc, 0);
+      dv.setUint32(argvBufSize, 0);
+
+      return 0;
+    },
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    args_get(argv: number, argvBuf: number): number {
+      return 0;
     },
   };
 }

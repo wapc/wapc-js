@@ -83,6 +83,7 @@ export class WapcHost {
       wapc: generateWapcImports(this),
       wasi: wasiImports,
       wasi_unstable: wasiImports,
+      wasi_snapshot_preview1: wasiImports,
     };
   }
 
