@@ -2,7 +2,7 @@
   "name": "@wapc/host",
   "description": "waPC host for node.js and the browser",
   "author": "jsoverson",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
